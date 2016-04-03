@@ -53,9 +53,27 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value v
 {% endif %}
 {% elif item['type'] == 'input' %}
 static char* _{{ item|getid|cvarname }}; 
+{% if 'attributes' in item and 'type' in item['attributes'] %}
+{% if item['attributes']['type'] == 'time' %}
+uint16_t {{ filename }}_get_{{ item|getid|cvarname }}(){
+	char value_hours[2];
+	value_hour[0] = _{{ item|getid|cvarname }}[0];
+	value_hour[1] = _{{ item|getid|cvarname }}[1];
+	char value_minutes[2];
+	value_minutes[0] = _{{ item|getid|cvarname }}[3];
+	value_minutes[1] = _{{ item|getid|cvarname }}[4];
+	return atoi(value_hour) * 60 + atoi(value_minutes);
+}
+{% else %}
 const char* {{ filename }}_get_{{ item|getid|cvarname }}(){
 	return _{{ item|getid|cvarname }};
 }
+{% endif %}
+{% else %}
+const char* {{ filename }}_get_{{ item|getid|cvarname }}(){
+	return _{{ item|getid|cvarname }};
+}
+{% endif %}
 static void set_{{ item|getid|cvarname }}(char* value){
 	if(_{{ item|getid|cvarname }}) free( _{{ item|getid|cvarname }});
 	uint32_t size = strlen(value);
