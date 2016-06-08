@@ -18,7 +18,7 @@ static AppMessageInboxReceived custom_received_callback;
 {% endif %}
 // -----------------------------------------------------
 // Getter for '{{ item|getid }}'
-#define {{ item|getid|cvarname|upper }}_PKEY {{ appinfo['appKeys'][item['appKey']] }}
+#define {{ item|getid|cvarname|upper }}_PKEY {{ package['pebble']['messageKeys'][item['appKey']] }}
 {% if item['type'] == 'toggle' %}
 static bool _{{ item|getid|cvarname }};
 bool {{ filename }}_get_{{ item|getid|cvarname }}(){

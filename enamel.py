@@ -85,7 +85,7 @@ def removeComments(string):
     string = re.sub(re.compile("//.*?\n" ) ,"" ,string) # remove all occurance singleline comments (//COMMENT\n ) from string
     return string
 
-def generate(appinfo='appinfo.json', configFile='src/js/config.json', outputDir='src/generated', outputFileName='enamel'):
+def generate(package='package.json', configFile='src/js/config.json', outputDir='src/generated', outputFileName='enamel'):
     """Generates C helpers from a Clay configuration file"""
     # create output folder
     if not os.path.exists(outputDir):
@@ -101,9 +101,9 @@ def generate(appinfo='appinfo.json', configFile='src/js/config.json', outputDir=
     env.filters['defaulttobytearray'] = defaulttobytearray
     env.filters['getdefines'] = getdefines
 
-    # load appinfo file
-    appinfo_content=open(appinfo)
-    appinfo_content=json.load(appinfo_content)
+    # load package file
+    package_content=open(package)
+    package_content=json.load(package_content)
 
     # load config file
     config_content=open(configFile)
@@ -123,7 +123,7 @@ def generate(appinfo='appinfo.json', configFile='src/js/config.json', outputDir=
     for template in ['enamel.h.jinja', 'enamel.c.jinja'] : 
     	extension = ".h" if template.endswith('h.jinja') else ".c" 
         f = open("%s/%s%s" % (outputDir, outputFileName, extension), 'w')
-        f.write(env.get_template(template).render({'filename' : outputFileName, 'config' : config_content, 'appinfo' : appinfo_content}))
+        f.write(env.get_template(template).render({'filename' : outputFileName, 'config' : config_content, 'package' : package_content}))
         f.close()
 
 def enamel(task):
@@ -132,9 +132,9 @@ def enamel(task):
 import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generates C helpers from a Clay configuration file')
-    parser.add_argument('--appinfo', action='store', default='appinfo.json', help='Path to appinfo.json')
+    parser.add_argument('--package', action='store', default='package.json', help='Path to package.json')
     parser.add_argument('--config', action='store', default='src/js/config.json', help='Path to Clay configuration file') 
     parser.add_argument('--folder', action='store', default='.', help='Generation folder') 
     parser.add_argument('--filename', action='store', default='enamel', help='Name for the generated files without extension (default : enamel)') 
     result = parser.parse_args()
-    generate(appinfo=result.appinfo, configFile=result.config, outputDir=result.folder, outputFileName=result.filename)
+    generate(package=result.package, configFile=result.config, outputDir=result.folder, outputFileName=result.filename)
