@@ -85,53 +85,12 @@ static void set_{{ item|getid|cvarname }}(int32_t value){
 	_{{ item|getid|cvarname }} = value;
 }
 {% elif item['type'] == 'checkboxgroup' %}
-typedef struct {
-  uint16_t count;
-{% if item['options'][0]['value'] is string %}
-  uint16_t values[{{ item['options']|length }}]; 
-{% else %}
-  {{ item|getid|cvarname|upper }}Value values[{{ item['options']|length }}];
-{% endif %}
-} {{ item|getid|cvarname }}Data;
-static {{ item|getid|cvarname }}Data _{{ item|getid|cvarname }}_data;
-{% if item['options'][0]['value'] is string %}
-static const char* {{ item|getid|cvarname }}_values[] = {
-{%- for option in item['options'] -%}
-	"{{ option['value'] }}",
-{%- endfor -%}
-};
-const char* {{ filename }}_get_{{ item|getid|cvarname }}(uint16_t index_){
-	if(index_ < _{{ item|getid|cvarname }}_data.count)
-		return {{ item|getid|cvarname }}_values[_{{ item|getid|cvarname }}_data.values[index_]];
-	return 0;
+static bool _{{ item|getid|cvarname }}[{{item['options']|length}}];
+bool {{ filename }}_get_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value index_){
+	return _{{ item|getid|cvarname }}[index_];
 }
-{% else %}
-{{ item|getid|cvarname|upper }}Value {{ filename }}_get_{{ item|getid|cvarname }}(uint16_t index_){
-	if(index_ < _{{ item|getid|cvarname }}_data.count)
-		return _{{ item|getid|cvarname }}_data.values[index_];
-	return 0;
-}
-{% endif %}
-uint16_t {{ filename }}_get_{{ item|getid|cvarname }}_count(){
-	return _{{ item|getid|cvarname }}_data.count;
-}
-static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
-	uint16_t count = 0;
-	uint8_t* end = data_ + length_;
-	while(data_ < end) {
-{% if item['options'][0]['value'] is string %}
-		for(uint16_t i=0; i<{{ item['options']|length }}; i++){
-			if(strcmp((char*)data_, {{ item|getid|cvarname }}_values[i]) == 0){
-				_{{ item|getid|cvarname }}_data.values[count++] = i;
-				break;
-			}
-		} 
-{% else %}
-		_{{ item|getid|cvarname }}_data.values[count++] = atoi((char*)data_);
-{% endif %}
-		while (*data_++);
-	}
-	_{{ item|getid|cvarname }}_data.count = count;
+static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value index_, bool data_){
+	_{{ item|getid|cvarname }}[index_] = data_;
 }
 {% endif %}
 // -----------------------------------------------------
@@ -157,7 +116,7 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 {% if 'capabilities' in item %}
 #if {{ item['capabilities']|getdefines }}
 {% endif %}
-	tuple = dict_find(iter, {{ item|getid|cvarname|upper }}_PKEY);
+	tuple = dict_find(iter, {{ item|getmessagekey }});
 	{% if item['type'] == 'input' %}
 	tuple ? set_{{ item|getid|cvarname }}(tuple->value->cstring) : false;
 	{% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
@@ -173,7 +132,10 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 	{% elif item['type'] == 'slider' %}
 	tuple ? set_{{ item|getid|cvarname }}(tuple->value->int32) : false;
 	{% elif item['type'] == 'checkboxgroup' %}
-	tuple ? set_{{ item|getid|cvarname }}(tuple->value->data, tuple->length) : false;
+	{% for option in item['options'] %}
+	tuple = dict_find(iter,  {{ item|getmessagekey }} + {{ loop.index0 }});
+	tuple ? set_{{ item|getid|cvarname }}({{ loop.index0 }}, tuple->value->int32 == 1) : false;
+	{% endfor %}
 	{% endif %}
 {% if 'capabilities' in item %}
 #endif
@@ -205,7 +167,7 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 		{% elif item['type'] == 'toggle' %}
 		set_{{ item|getid|cvarname }}(persist_read_bool({{ item|getid|cvarname|upper }}_PKEY));
 		{% elif item['type'] == 'checkboxgroup' %}
-		persist_read_data({{ item|getid|cvarname|upper }}_PKEY, &_{{ item|getid|cvarname }}_data, sizeof({{ item|getid|cvarname }}Data));
+		persist_read_data({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}, {{ item['options']|length }});
 		{% endif %}
 	}
 	{% if 'defaultValue' in item %}
@@ -233,8 +195,9 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 		{% elif item['type'] == 'toggle' %}
 		set_{{ item|getid|cvarname }}({{item['defaultValue']|lower}});
 		{% elif item['type'] == 'checkboxgroup' %}
-		uint8_t array[] = {{item|defaulttobytearray}};
-		set_{{ item|getid|cvarname }}(array, sizeof(array));
+		{% for val in item['defaultValue'] %}
+		set_favorite_food({{ loop.index0 }}, {{ val|lower }});
+		{% endfor %}
 		{% endif %}
 	}
 	{% endif %}
@@ -248,8 +211,10 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 {% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if item['type'] == 'input' %}
 + 7 + {{ filename|upper }}_MAX_STRING_LENGTH
-{% elif item['type'] == 'select' or item['type'] == 'radiogroup' or item['type'] == 'checkboxgroup' %}
+{% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
 + 7 + {{ item|maxdictsize }}
+{% elif item['type'] == 'checkboxgroup' %}
++ 7 + {{ item['options']|length }}
 {% elif item['type'] == 'color' or item['type'] == 'toggle' or item['type'] == 'slider' %}
 + 7 + 4
 {% endif %}
@@ -289,7 +254,7 @@ void {{ filename }}_init(){
 	{% elif item['type'] == 'slider' %}
 	!persist_exists({{ item|getid|cvarname|upper }}_PKEY) || (persist_read_int({{ item|getid|cvarname|upper }}_PKEY) != _{{ item|getid|cvarname }}) ? persist_write_int({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}) : false;
 	{% elif item['type'] == 'checkboxgroup' %}
-	persist_write_data({{ item|getid|cvarname|upper }}_PKEY, &_{{ item|getid|cvarname }}_data, sizeof({{ item|getid|cvarname }}Data));
+	persist_write_data({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}, {{ item['options']|length }});
 	{% endif %}
 {% if 'capabilities' in item %}
 #endif

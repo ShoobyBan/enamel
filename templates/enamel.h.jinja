@@ -34,7 +34,7 @@ GColor {{ filename }}_get_{{ item|getid|cvarname }}();
 {% elif item['type'] == 'checkboxgroup' %}
 typedef enum {
 {% for option in item['options']: %}
-	{{ item|getid|cvarname|upper }}_{{ option['label']|cvarname|upper }} = {{ option['value'] }},
+	{{ item|getid|cvarname|upper }}_{{ option|cvarname|upper }},
 {% endfor %}
 } {{ item|getid|cvarname|upper }}Value;
 bool {{ filename }}_get_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value index);

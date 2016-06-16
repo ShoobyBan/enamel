@@ -37,20 +37,6 @@ def maxdictsize(item):
             size += len(str(option['value'])) + 1
     return size
 
-def defaulttobytearray(item):
-    """Convert the array of default values to an array of bytes (only relevant for checkboxgroup)"""
-    res = ''
-    if item['type'] == 'checkboxgroup' :
-        arr = []
-        for value in item['defaultValue'] :
-            arr += map(ord,value)
-            arr += [0]
-        res = '{'
-        for a in arr :
-            res += str(a) + ','
-        res += '}'
-    return res
-
 def getdefines(capabilities):
     """Generate the #define for the given capabilities"""
     if len(capabilities) == 0 :
@@ -79,6 +65,12 @@ def getdefines(capabilities):
         allcap2defines['NOT_'+key]  = '!' + value
     return ' && '.join(allcap2defines[cap] for cap in capabilities) 
 
+def getmessagekey(item):
+    m = re.search(r"(.*)\[(\d+)\]", item['messageKey'])
+    if m :
+        return 'MESSAGE_KEY_' + m.group(1) + " + " + m.group(2)
+    return 'MESSAGE_KEY_' + item['messageKey']
+
 def removeComments(string):
     """From http://stackoverflow.com/questions/2319019/using-regex-to-remove-comments-from-source-files"""
     string = re.sub(re.compile("/\*.*?\*/",re.DOTALL ) ,"" ,string) # remove all occurance streamed comments (/*COMMENT */) from string
@@ -98,8 +90,8 @@ def generate(package='package.json', configFile='src/js/config.json', outputDir=
     env.filters['cvarname'] = cvarname
     env.filters['getid']    = getid
     env.filters['maxdictsize']  = maxdictsize
-    env.filters['defaulttobytearray'] = defaulttobytearray
     env.filters['getdefines'] = getdefines
+    env.filters['getmessagekey'] = getmessagekey
 
     # load package file
     package_content=open(package)
