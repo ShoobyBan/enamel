@@ -23,8 +23,8 @@ def cvarname(name):
     return re.sub(r'([^\w\s]| )', '_', name)
 
 def getid(item):
-    """Return an identifier for the given config item, takes 'id' if it exists or 'appKey'"""
-    return item['id'] if 'id' in item else item['appKey']
+    """Return an identifier for the given config item, takes 'id' if it exists or 'messageKey'"""
+    return item['id'] if 'id' in item else item['messageKey']
 
 def maxdictsize(item):
     """Return the maximum size of the item in the dictionary"""

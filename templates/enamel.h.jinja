@@ -8,7 +8,7 @@
 #include <pebble.h>
 
 {% macro item_header(item) %}
-{% if 'appKey' in item and 'enamel-ignore' not in item %}
+{% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if 'capabilities' in item %}
 #if {{ item['capabilities']|getdefines }}
 {% endif %}
@@ -32,17 +32,12 @@ const char* {{ filename }}_get_{{ item|getid|cvarname }}();
 {% elif item['type'] == 'color' %}
 GColor {{ filename }}_get_{{ item|getid|cvarname }}();
 {% elif item['type'] == 'checkboxgroup' %}
-uint16_t {{ filename }}_get_{{ item|getid|cvarname }}_count();
-{% if item['options'][0]['value'] is string %}
-const char* {{ filename }}_get_{{ item|getid|cvarname }}(uint16_t index);
-{% else %}
 typedef enum {
 {% for option in item['options']: %}
 	{{ item|getid|cvarname|upper }}_{{ option['label']|cvarname|upper }} = {{ option['value'] }},
 {% endfor %}
 } {{ item|getid|cvarname|upper }}Value;
-{{ item|getid|cvarname|upper }}Value {{ filename }}_get_{{ item|getid|cvarname }}(uint16_t index);
-{% endif %}
+bool {{ filename }}_get_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value index);
 {% elif item['type'] == 'slider' %}
 {% if 'step' in item and '.' in item['step']|string %}
 #define {{ item|getid|cvarname|upper }}_PRECISION {{ 10**((item['step'] - item['step']|round(0, 'floor'))|string|length - 2) }}
