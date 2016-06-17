@@ -77,7 +77,7 @@ def removeComments(string):
     string = re.sub(re.compile("//.*?\n" ) ,"" ,string) # remove all occurance singleline comments (//COMMENT\n ) from string
     return string
 
-def generate(package='package.json', configFile='src/js/config.json', outputDir='src/generated', outputFileName='enamel'):
+def generate(package='package.json', configFile='src/js/config.json', outputDir='src/generated'):
     """Generates C helpers from a Clay configuration file"""
     # create output folder
     if not os.path.exists(outputDir):
@@ -114,12 +114,12 @@ def generate(package='package.json', configFile='src/js/config.json', outputDir=
     # render templates
     for template in ['enamel.h.jinja', 'enamel.c.jinja'] : 
     	extension = ".h" if template.endswith('h.jinja') else ".c" 
-        f = open("%s/%s%s" % (outputDir, outputFileName, extension), 'w')
-        f.write(env.get_template(template).render({'filename' : outputFileName, 'config' : config_content, 'package' : package_content}))
+        f = open("%s/%s%s" % (outputDir, 'enamel', extension), 'w')
+        f.write(env.get_template(template).render({'config' : config_content, 'package' : package_content}))
         f.close()
 
 def enamel(task):
-    generate(configFile=task.inputs[0].abspath(), outputDir=task.generator.bld.bldnode.abspath(), outputFileName=os.path.splitext(os.path.basename(task.outputs[0].abspath()))[0])
+    generate(configFile=task.inputs[0].abspath(), outputDir=task.generator.bld.bldnode.abspath())
 
 import argparse
 if __name__ == '__main__':
@@ -127,6 +127,5 @@ if __name__ == '__main__':
     parser.add_argument('--package', action='store', default='package.json', help='Path to package.json')
     parser.add_argument('--config', action='store', default='src/js/config.json', help='Path to Clay configuration file') 
     parser.add_argument('--folder', action='store', default='.', help='Generation folder') 
-    parser.add_argument('--filename', action='store', default='enamel', help='Name for the generated files without extension (default : enamel)') 
     result = parser.parse_args()
-    generate(package=result.package, configFile=result.config, outputDir=result.folder, outputFileName=result.filename)
+    generate(package=result.package, configFile=result.config, outputDir=result.folder)

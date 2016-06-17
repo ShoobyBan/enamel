@@ -3,10 +3,10 @@
  */
 
 #include <pebble.h>
-#include "{{ filename }}.h"
+#include "enamel.h"
 
-#ifndef {{ filename|upper }}_MAX_STRING_LENGTH
-#define {{ filename|upper }}_MAX_STRING_LENGTH 30
+#ifndef ENAMEL_MAX_STRING_LENGTH
+#define ENAMEL_MAX_STRING_LENGTH 30
 #endif
 
 static AppMessageInboxReceived custom_received_callback; 
@@ -21,7 +21,7 @@ static AppMessageInboxReceived custom_received_callback;
 #define {{ item|getid|cvarname|upper }}_PKEY {{ package['pebble']['messageKeys'][item['messageKey']] }}
 {% if item['type'] == 'toggle' %}
 static bool _{{ item|getid|cvarname }};
-bool {{ filename }}_get_{{ item|getid|cvarname }}(){
+bool enamel_get_{{ item|getid|cvarname }}(){
 	return _{{ item|getid|cvarname }};
 }
 static void set_{{ item|getid|cvarname }}(bool value){
@@ -35,7 +35,7 @@ static const char* {{ item|getid|cvarname }}_values[] = {
 	"{{ option['value'] }}",
 {%- endfor -%}
 };
-const char* {{ filename }}_get_{{ item|getid|cvarname }}(){
+const char* enamel_get_{{ item|getid|cvarname }}(){
 	return {{ item|getid|cvarname }}_values[_{{ item|getid|cvarname }}];
 }
 static void set_{{ item|getid|cvarname }}(char* value){
@@ -49,7 +49,7 @@ static void set_{{ item|getid|cvarname }}(char* value){
 }
 {% else %}
 {{ item|getid|cvarname|upper }}Value _{{ item|getid|cvarname }};
-{{ item|getid|cvarname|upper }}Value {{ filename }}_get_{{ item|getid|cvarname }}(){
+{{ item|getid|cvarname|upper }}Value enamel_get_{{ item|getid|cvarname }}(){
 	return _{{ item|getid|cvarname }};
 }
 static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value value){
@@ -58,7 +58,7 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value v
 {% endif %}
 {% elif item['type'] == 'input' %}
 static char* _{{ item|getid|cvarname }}; 
-const char* {{ filename }}_get_{{ item|getid|cvarname }}(){
+const char* enamel_get_{{ item|getid|cvarname }}(){
 	return _{{ item|getid|cvarname }};
 }
 static void set_{{ item|getid|cvarname }}(char* value){
@@ -70,7 +70,7 @@ static void set_{{ item|getid|cvarname }}(char* value){
 }
 {% elif item['type'] == 'color' %}
 static GColor _{{ item|getid|cvarname }};
-GColor {{ filename }}_get_{{ item|getid|cvarname }}(){
+GColor enamel_get_{{ item|getid|cvarname }}(){
 	return _{{ item|getid|cvarname }};
 }
 static void set_{{ item|getid|cvarname }}(uint8_t value){
@@ -78,7 +78,7 @@ static void set_{{ item|getid|cvarname }}(uint8_t value){
 }
 {% elif item['type'] == 'slider' %}
 static int32_t _{{ item|getid|cvarname }};
-int32_t {{ filename }}_get_{{ item|getid|cvarname }}(){
+int32_t enamel_get_{{ item|getid|cvarname }}(){
 	return _{{ item|getid|cvarname }};
 }
 static void set_{{ item|getid|cvarname }}(int32_t value){
@@ -86,7 +86,7 @@ static void set_{{ item|getid|cvarname }}(int32_t value){
 }
 {% elif item['type'] == 'checkboxgroup' %}
 static bool _{{ item|getid|cvarname }}[{{item['options']|length}}];
-bool {{ filename }}_get_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value index_){
+bool enamel_get_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value index_){
 	return _{{ item|getid|cvarname }}[index_];
 }
 static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value index_, bool data_){
@@ -150,9 +150,9 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value i
 {% endif %}
 	if (persist_exists({{ item|getid|cvarname|upper }}_PKEY)) {
 		{% if item['type'] == 'input' %}
-		char tmp[{{ filename|upper }}_MAX_STRING_LENGTH];
-		memset(tmp, 0, {{ filename|upper }}_MAX_STRING_LENGTH);
-		persist_read_string({{ item|getid|cvarname|upper }}_PKEY, tmp, {{ filename|upper }}_MAX_STRING_LENGTH);
+		char tmp[ENAMEL_MAX_STRING_LENGTH];
+		memset(tmp, 0, ENAMEL_MAX_STRING_LENGTH);
+		persist_read_string({{ item|getid|cvarname|upper }}_PKEY, tmp, ENAMEL_MAX_STRING_LENGTH);
 		set_{{ item|getid|cvarname }}(tmp);
 		{% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
 		{% if item['options'][0]['value'] is string %}
@@ -210,7 +210,7 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value i
 {% macro item_dict_size(item) %}
 {% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if item['type'] == 'input' %}
-+ 7 + {{ filename|upper }}_MAX_STRING_LENGTH
++ 7 + ENAMEL_MAX_STRING_LENGTH
 {% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
 + 7 + {{ item|maxdictsize }}
 {% elif item['type'] == 'checkboxgroup' %}
@@ -221,7 +221,7 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value i
 {% endif %}
 {% endmacro -%}
 
-void {{ filename }}_init(){
+void enamel_init(){
 {% for item in config %}
 {% if item['type'] == 'section' %}
 {% for item in item['items'] %}
@@ -262,7 +262,7 @@ void {{ filename }}_init(){
 {% endif %}
 {% endmacro -%}
 
-void {{ filename }}_deinit(){
+void enamel_deinit(){
 {% for item in config %}
 {% if item['type'] == 'section' %}
 {% for item in item['items'] %}
@@ -296,19 +296,19 @@ static void in_received_handler(DictionaryIterator *iter, void *context) {
 	}
 }
 
-void {{ filename }}_app_message_open(const uint32_t size_inbound, const uint32_t size_outbound, AppMessageInboxReceived received_callback){
+void enamel_app_message_open(const uint32_t size_inbound, const uint32_t size_outbound, AppMessageInboxReceived received_callback){
 	custom_received_callback = received_callback;
 	app_message_register_inbox_received(in_received_handler);
 
 	if(size_inbound == 0) {
-		app_message_open({{ filename }}_get_inbound_size(), size_outbound);
+		app_message_open(enamel_get_inbound_size(), size_outbound);
 	}
 	else {
 		app_message_open(size_inbound, size_outbound);
 	}
 }
 
-uint16_t {{ filename }}_get_inbound_size() {
+uint16_t enamel_get_inbound_size() {
 	return 1
 		{% for item in config %}
 		{% if item['type'] == 'section' %}
