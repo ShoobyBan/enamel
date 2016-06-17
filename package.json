@@ -18,7 +18,7 @@
   ],
   "dependencies": {
     "pebble-events": "^1.0.0",
-    "pebble-localize": "0.0.4"
+    "pebble-localize": "^0.0.5"
   },
   "pebble": {
     "projectType": "package",
