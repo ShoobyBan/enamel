@@ -3,13 +3,32 @@
  */
 
 #include <pebble.h>
+#include <pebble-events/pebble-events.h>
 #include "enamel.h"
 
 #ifndef ENAMEL_MAX_STRING_LENGTH
 #define ENAMEL_MAX_STRING_LENGTH 30
 #endif
 
-static AppMessageInboxReceived custom_received_callback; 
+static EventHandle event_handle;
+static EnamelSettingsReceivedCallback *settings_received_callback; 
+
+
+typedef struct {
+  uint8_t size;
+  uint32_t* hash;
+} persist_keys;
+
+static persist_keys pkeys;
+
+
+static int get_pkey(persist_keys keys_, uint32_t hash_){
+	for(uint8_t i=0; i<size; i++){
+		if(keys_.hash[i] == hash_)
+			return i;
+	}
+	return 0xFFFF;
+}
 
 {% macro item_accessors_code(item) %}
 {% if 'messageKey' in item and 'enamel-ignore' not in item %}
@@ -117,6 +136,7 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value i
 #if {{ item['capabilities']|getdefines }}
 {% endif %}
 	tuple = dict_find(iter, {{ item|getmessagekey }});
+	changed = changed || (tuple != NULL);
 	{% if item['type'] == 'input' %}
 	tuple ? set_{{ item|getid|cvarname }}(tuple->value->cstring) : false;
 	{% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
@@ -134,6 +154,7 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value i
 	{% elif item['type'] == 'checkboxgroup' %}
 	{% for option in item['options'] %}
 	tuple = dict_find(iter,  {{ item|getmessagekey }} + {{ loop.index0 }});
+	changed = changed || (tuple != NULL);
 	tuple ? set_{{ item|getid|cvarname }}({{ loop.index0 }}, tuple->value->int32 == 1) : false;
 	{% endfor %}
 	{% endif %}
@@ -221,6 +242,55 @@ static void set_{{ item|getid|cvarname }}({{ item|getid|cvarname|upper }}Value i
 {% endif %}
 {% endmacro -%}
 
+static uint16_t enamel_get_inbound_size() {
+	return 1
+		{% for item in config %}
+		{% if item['type'] == 'section' %}
+{%- if 'capabilities' in item %}
+#if {{ item['capabilities']|getdefines }}
+{% endif -%}
+		{% for item in item['items'] %}
+{%- if 'capabilities' in item %}
+#if {{ item['capabilities']|getdefines }}
+{% endif -%}
+			{{ item_dict_size(item) }}
+{%- if 'capabilities' in item %}
+#endif
+{% endif -%}
+		{%- endfor %}
+{%- if 'capabilities' in item %}
+#endif
+{% endif -%}
+		{% else %}
+{%- if 'capabilities' in item %}
+#if {{ item['capabilities']|getdefines }}
+{% endif -%}
+			{{ item_dict_size(item) }}
+{%- if 'capabilities' in item %}
+#endif
+{% endif -%}
+		{%- endif %}
+		{% endfor %};
+}
+
+static void inbox_received_handle(DictionaryIterator *iter, void *context) {
+	Tuple *tuple = NULL;
+	bool changed = false;
+{% for item in config %}
+{% if item['type'] == 'section' %}
+{% for item in item['items'] %}
+{{ item_in_received_handler(item) }}
+{%- endfor %}
+{% else %}
+{{ item_in_received_handler(item) }}
+{%- endif %}
+{% endfor %}
+
+	if(changed && settings_received_callback){
+		settings_received_callback();
+	}
+}
+
 void enamel_init(){
 {% for item in config %}
 {% if item['type'] == 'section' %}
@@ -231,6 +301,10 @@ void enamel_init(){
 {{ item_init(item) }}
 {%- endif %}
 {% endfor %}
+	
+	settings_received_callback = NULL;
+	event_handle = events_app_message_register_inbox_received(inbox_received_handle, NULL);
+	events_app_message_request_inbox_size(enamel_get_inbound_size());
 }
 
 {% macro item_deinit(item) %}
@@ -272,69 +346,11 @@ void enamel_deinit(){
 {{ item_deinit(item) }}
 {%- endif %}
 {% endfor %}
-	app_message_deregister_callbacks();
-	custom_received_callback = NULL;
+	events_app_message_unsubscribe(event_handle);
+	settings_received_callback = NULL;
 }
 
-void enamel_inbox_received_handle(DictionaryIterator *iter, void *context) {
-	Tuple *tuple = NULL;
-{% for item in config %}
-{% if item['type'] == 'section' %}
-{% for item in item['items'] %}
-{{ item_in_received_handler(item) }}
-{%- endfor %}
-{% else %}
-{{ item_in_received_handler(item) }}
-{%- endif %}
-{% endfor %}
+void enamel_register_settings_received(EnamelSettingsReceivedCallback *callback){
+	settings_received_callback = callback;
 }
 
-static void in_received_handler(DictionaryIterator *iter, void *context) {
-	enamel_inbox_received_handle(iter, context);
-	if(custom_received_callback) {
-		custom_received_callback(iter, context);
-	}
-}
-
-void enamel_app_message_open(const uint32_t size_inbound, const uint32_t size_outbound, AppMessageInboxReceived received_callback){
-	custom_received_callback = received_callback;
-	app_message_register_inbox_received(in_received_handler);
-
-	if(size_inbound == 0) {
-		app_message_open(enamel_get_inbound_size(), size_outbound);
-	}
-	else {
-		app_message_open(size_inbound, size_outbound);
-	}
-}
-
-uint16_t enamel_get_inbound_size() {
-	return 1
-		{% for item in config %}
-		{% if item['type'] == 'section' %}
-{%- if 'capabilities' in item %}
-#if {{ item['capabilities']|getdefines }}
-{% endif -%}
-		{% for item in item['items'] %}
-{%- if 'capabilities' in item %}
-#if {{ item['capabilities']|getdefines }}
-{% endif -%}
-			{{ item_dict_size(item) }}
-{%- if 'capabilities' in item %}
-#endif
-{% endif -%}
-		{%- endfor %}
-{%- if 'capabilities' in item %}
-#endif
-{% endif -%}
-		{% else %}
-{%- if 'capabilities' in item %}
-#if {{ item['capabilities']|getdefines }}
-{% endif -%}
-			{{ item_dict_size(item) }}
-{%- if 'capabilities' in item %}
-#endif
-{% endif -%}
-		{%- endif %}
-		{% endfor %};
-}

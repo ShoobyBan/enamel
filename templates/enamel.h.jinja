@@ -66,12 +66,16 @@ int32_t enamel_get_{{ item|getid|cvarname }}();
 
 void enamel_init();
 
-void enamel_app_message_open(const uint32_t size_inbound, const uint32_t size_outbound, AppMessageInboxReceived received_callback); 
+//void enamel_app_message_open(const uint32_t size_inbound, const uint32_t size_outbound, AppMessageInboxReceived received_callback); 
 
 void enamel_deinit();
 
-void enamel_inbox_received_handle(DictionaryIterator *iter, void *context); 
+//void enamel_inbox_received_handle(DictionaryIterator *iter, void *context); 
 
-uint16_t enamel_get_inbound_size();
+//uint16_t enamel_get_inbound_size();
+
+typedef void(EnamelSettingsReceivedCallback)(void);
+
+void enamel_register_settings_received(EnamelSettingsReceivedCallback *callback);
 
 #endif
