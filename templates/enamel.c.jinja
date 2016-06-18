@@ -12,13 +12,13 @@
 static AppMessageInboxReceived custom_received_callback; 
 
 {% macro item_accessors_code(item) %}
-{% if 'appKey' in item and 'enamel-ignore' not in item %}
+{% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if 'capabilities' in item %}
 #if {{ item['capabilities']|getdefines }}
 {% endif %}
 // -----------------------------------------------------
 // Getter for '{{ item|getid }}'
-#define {{ item|getid|cvarname|upper }}_PKEY {{ appinfo['appKeys'][item['appKey']] }}
+
 {% if item['type'] == 'toggle' %}
 static bool _{{ item|getid|cvarname }};
 bool {{ filename }}_get_{{ item|getid|cvarname }}(){
@@ -153,11 +153,11 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 {% endfor %}
 
 {% macro item_in_received_handler(item) %}
-{% if 'appKey' in item and 'enamel-ignore' not in item %}
+{% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if 'capabilities' in item %}
 #if {{ item['capabilities']|getdefines }}
 {% endif %}
-	tuple = dict_find(iter, {{ item|getid|cvarname|upper }}_PKEY);
+	tuple = dict_find(iter, MESSAGE_KEY_{{ item|getid|cvarname|upper }});
 	{% if item['type'] == 'input' %}
 	tuple ? set_{{ item|getid|cvarname }}(tuple->value->cstring) : false;
 	{% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
@@ -182,30 +182,30 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 {% endmacro -%}
 
 {% macro item_init(item) %}
-{% if 'appKey' in item and 'enamel-ignore' not in item %}
+{% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if 'capabilities' in item %}
 #if {{ item['capabilities']|getdefines }}
 {% endif %}
-	if (persist_exists({{ item|getid|cvarname|upper }}_PKEY)) {
+	if (persist_exists(MESSAGE_KEY_{{ item|getid|cvarname|upper }})) {
 		{% if item['type'] == 'input' %}
 		char tmp[{{ filename|upper }}_MAX_STRING_LENGTH];
 		memset(tmp, 0, {{ filename|upper }}_MAX_STRING_LENGTH);
-		persist_read_string({{ item|getid|cvarname|upper }}_PKEY, tmp, {{ filename|upper }}_MAX_STRING_LENGTH);
+		persist_read_string(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, tmp, {{ filename|upper }}_MAX_STRING_LENGTH);
 		set_{{ item|getid|cvarname }}(tmp);
 		{% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
 		{% if item['options'][0]['value'] is string %}
-		_{{ item|getid|cvarname }} = (uint16_t)persist_read_int({{ item|getid|cvarname|upper }}_PKEY);
+		_{{ item|getid|cvarname }} = (uint16_t)persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }});
 		{% else %}
-		set_{{ item|getid|cvarname }}(persist_read_int({{ item|getid|cvarname|upper }}_PKEY));
+		set_{{ item|getid|cvarname }}(persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}));
 		{% endif %}
 		{% elif item['type'] == 'color' %}
-		set_{{ item|getid|cvarname }}(persist_read_int({{ item|getid|cvarname|upper }}_PKEY));
+		set_{{ item|getid|cvarname }}(persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}));
 		{% elif item['type'] == 'slider' %}
-		set_{{ item|getid|cvarname }}(persist_read_int({{ item|getid|cvarname|upper }}_PKEY));
+		set_{{ item|getid|cvarname }}(persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}));
 		{% elif item['type'] == 'toggle' %}
-		set_{{ item|getid|cvarname }}(persist_read_bool({{ item|getid|cvarname|upper }}_PKEY));
+		set_{{ item|getid|cvarname }}(persist_read_bool(MESSAGE_KEY_{{ item|getid|cvarname|upper }}));
 		{% elif item['type'] == 'checkboxgroup' %}
-		persist_read_data({{ item|getid|cvarname|upper }}_PKEY, &_{{ item|getid|cvarname }}_data, sizeof({{ item|getid|cvarname }}Data));
+		persist_read_data(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, &_{{ item|getid|cvarname }}_data, sizeof({{ item|getid|cvarname }}Data));
 		{% endif %}
 	}
 	{% if 'defaultValue' in item %}
@@ -245,7 +245,7 @@ static void set_{{ item|getid|cvarname }}(uint8_t* data_, uint16_t length_){
 {% endmacro -%}
 
 {% macro item_dict_size(item) %}
-{% if 'appKey' in item and 'enamel-ignore' not in item %}
+{% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if item['type'] == 'input' %}
 + 7 + {{ filename|upper }}_MAX_STRING_LENGTH
 {% elif item['type'] == 'select' or item['type'] == 'radiogroup' or item['type'] == 'checkboxgroup' %}
@@ -269,27 +269,27 @@ void {{ filename }}_init(){
 }
 
 {% macro item_deinit(item) %}
-{% if 'appKey' in item and 'enamel-ignore' not in item %}
+{% if 'messageKey' in item and 'enamel-ignore' not in item %}
 {% if 'capabilities' in item %}
 #if {{ item['capabilities']|getdefines }}
 {% endif %}
 	{% if item['type'] == 'input' %}
-	persist_write_string({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }});
+	persist_write_string(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, _{{ item|getid|cvarname }});
 	if(_{{ item|getid|cvarname }}) free(_{{ item|getid|cvarname }});
 	{% elif item['type'] == 'select' or item['type'] == 'radiogroup' %}
 	{% if item['options'][0]['value'] is string %}
-	!persist_exists({{ item|getid|cvarname|upper }}_PKEY) || (persist_read_int({{ item|getid|cvarname|upper }}_PKEY) != (int32_t)_{{ item|getid|cvarname }}) ? persist_write_int({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}) : false;
+	!persist_exists(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) || (persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) != (int32_t)_{{ item|getid|cvarname }}) ? persist_write_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, _{{ item|getid|cvarname }}) : false;
 	{% else %}
-	!persist_exists({{ item|getid|cvarname|upper }}_PKEY) || (persist_read_int({{ item|getid|cvarname|upper }}_PKEY) != _{{ item|getid|cvarname }}) ? persist_write_int({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}) : false;
+	!persist_exists(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) || (persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) != _{{ item|getid|cvarname }}) ? persist_write_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, _{{ item|getid|cvarname }}) : false;
 	{% endif %}
 	{% elif item['type'] == 'toggle' %}
-	!persist_exists({{ item|getid|cvarname|upper }}_PKEY) || (persist_read_bool({{ item|getid|cvarname|upper }}_PKEY) != _{{ item|getid|cvarname }}) ? persist_write_bool({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}) : false;
+	!persist_exists(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) || (persist_read_bool(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) != _{{ item|getid|cvarname }}) ? persist_write_bool(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, _{{ item|getid|cvarname }}) : false;
 	{% elif item['type'] == 'color' %}
-	!persist_exists({{ item|getid|cvarname|upper }}_PKEY) || (persist_read_int({{ item|getid|cvarname|upper }}_PKEY) != _{{ item|getid|cvarname }}.argb) ? persist_write_int({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}.argb) : false;
+	!persist_exists(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) || (persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) != _{{ item|getid|cvarname }}.argb) ? persist_write_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, _{{ item|getid|cvarname }}.argb) : false;
 	{% elif item['type'] == 'slider' %}
-	!persist_exists({{ item|getid|cvarname|upper }}_PKEY) || (persist_read_int({{ item|getid|cvarname|upper }}_PKEY) != _{{ item|getid|cvarname }}) ? persist_write_int({{ item|getid|cvarname|upper }}_PKEY, _{{ item|getid|cvarname }}) : false;
+	!persist_exists(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) || (persist_read_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}) != _{{ item|getid|cvarname }}) ? persist_write_int(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, _{{ item|getid|cvarname }}) : false;
 	{% elif item['type'] == 'checkboxgroup' %}
-	persist_write_data({{ item|getid|cvarname|upper }}_PKEY, &_{{ item|getid|cvarname }}_data, sizeof({{ item|getid|cvarname }}Data));
+	persist_write_data(MESSAGE_KEY_{{ item|getid|cvarname|upper }}, &_{{ item|getid|cvarname }}_data, sizeof({{ item|getid|cvarname }}Data));
 	{% endif %}
 {% if 'capabilities' in item %}
 #endif
